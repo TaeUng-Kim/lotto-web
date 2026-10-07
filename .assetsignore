@@ -1,0 +1,12 @@
+# 웹에 올리지 않을 파일
+.git
+.github
+.gitignore
+.gitattributes
+.assetsignore
+wrangler.jsonc
+README.md
+*.py
+__pycache__
+.wrangler
+node_modules
