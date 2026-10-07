@@ -1,0 +1,676 @@
+<meta charset="utf-8">
+<title>로또 번호 공방</title>
+<meta name="theme-color" content="#1B2536">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --bg: #F3F5F8;
+  --surface: #FFFFFF;
+  --surface-2: #EAEEF4;
+  --ink: #1B2536;
+  --ink-2: #4A566B;
+  --ink-3: #7B8599;
+  --line: #D9DFE8;
+  --accent: #2B3FA8;
+  --accent-soft: #E3E7FA;
+  --ok: #1E7A4C;
+  --ok-soft: #DDF2E6;
+  --warn: #9A5B00;
+  --warn-soft: #FCEBCF;
+  --dot-off: #E1E6EE;
+  --dot-edge: #9EA9D6;
+  --ball-ink: #1A1A1A;
+  --b1: #FBC400; --b2: #69C8F2; --b3: #FF7272; --b4: #AAAAAA; --b5: #B0D840;
+  --radius: 14px;
+  --display: "Black Han Sans", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F131B; --surface: #171D29; --surface-2: #202837;
+    --ink: #E7EAF0; --ink-2: #B3BBC9; --ink-3: #838DA0; --line: #2A3344;
+    --accent: #9AA8F5; --accent-soft: #232C4D;
+    --ok: #6FD39D; --ok-soft: #173424; --warn: #F2B65A; --warn-soft: #3A2A12;
+    --dot-off: #283142; --dot-edge: #5A6799;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F131B; --surface: #171D29; --surface-2: #202837;
+  --ink: #E7EAF0; --ink-2: #B3BBC9; --ink-3: #838DA0; --line: #2A3344;
+  --accent: #9AA8F5; --accent-soft: #232C4D;
+  --ok: #6FD39D; --ok-soft: #173424; --warn: #F2B65A; --warn-soft: #3A2A12;
+  --dot-off: #283142; --dot-edge: #5A6799;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 15px/1.6 var(--body);
+  padding-inline: 16px; padding-block: 20px 48px;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+h1 { font-size: 30px; line-height: 1.15; }
+h2 { font-size: 21px; line-height: 1.2; }
+p { margin: 0; }
+.muted { color: var(--ink-2); }
+.small { font-size: 13px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* 헤더 */
+header { display: flex; flex-direction: column; gap: 10px; }
+.status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--surface-2); color: var(--ink-2); }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.plain::before { display: none; }
+
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; }
+.sec-head { display: flex; flex-direction: column; gap: 4px; }
+
+/* 로또 공 */
+.ball { --c: var(--b1); width: 34px; height: 34px; flex: none; border-radius: 50%; display: inline-grid; place-items: center;
+  font: 600 14px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ball-ink);
+  background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.55) 0 18%, transparent 42%), var(--c);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.12); }
+.ball.sm { width: 28px; height: 28px; font-size: 12px; }
+.ball.r2 { --c: var(--b2); } .ball.r3 { --c: var(--b3); } .ball.r4 { --c: var(--b4); } .ball.r5 { --c: var(--b5); }
+.ball.key { outline: 3px solid var(--ink); outline-offset: 2px; }
+.ball.dim { opacity: .45; }
+.balls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.plus { color: var(--ink-3); font-weight: 600; padding-inline: 2px; }
+
+/* 설정 */
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; position: relative; }
+label.field, div.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.field-label { display: flex; align-items: center; gap: 6px; min-height: 22px; }
+
+/* 도움말 팝업 */
+.help { position: relative; width: 20px; height: 20px; min-height: 20px; padding: 0; border-radius: 50%; border: 1px solid var(--ink-3); background: transparent; color: var(--ink-2); font: 600 12px/1 var(--mono); display: inline-grid; place-items: center; }
+.help::after { content: ""; position: absolute; inset: -12px; }
+.help[aria-expanded="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.pop { position: absolute; top: 34px; left: 0; right: 0; z-index: 20; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px; box-shadow: 0 10px 30px rgba(15, 20, 30, .18); font-size: 14px; font-weight: 400; line-height: 1.55; display: flex; flex-direction: column; gap: 8px; }
+.pop[hidden] { display: none; }
+.pop::before { content: ""; position: absolute; top: -7px; left: var(--arrow-x, 22px); margin-left: -6px; width: 12px; height: 12px; background: var(--surface); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+.pop b { font-weight: 700; }
+.pop .pop-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pop .pop-title { font-family: var(--display); font-size: 17px; }
+.pop .pop-close { min-height: 30px; width: 30px; padding: 0; border: 0; background: transparent; color: var(--ink-3); font-size: 18px; }
+.pop .pop-now { background: var(--accent-soft); color: var(--ink); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+select, input[type="number"] { font: 500 15px var(--body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; width: 100%; min-height: 42px; }
+select:focus-visible, input:focus-visible, button:focus-visible, .row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 누적 상위 표 */
+.table-scroll { overflow-x: auto; margin-inline: -4px; }
+.rows { display: flex; flex-direction: column; min-width: 300px; }
+.row { display: grid; grid-template-columns: 26px 30px 40px minmax(0, 1fr) 28px; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 8px; -webkit-tap-highlight-color: transparent; }
+.row:last-child { border-bottom: 0; }
+.rows .row.head .rc { white-space: nowrap; font-size: 12px; font-weight: 600; }
+.row.head { cursor: default; font-size: 12px; color: var(--ink-3); font-weight: 600; letter-spacing: .02em; padding-block: 2px 6px; }
+.row.picked { background: var(--accent-soft); }
+.row .rank { color: var(--ink-3); font-size: 13px; text-align: right; }
+.row .total { font-size: 14px; text-align: right; }
+.row .rc { font-size: 15px; font-weight: 600; text-align: right; }
+.dots { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; max-width: 220px; }
+.dots i { display: block; height: 14px; border-radius: 3px; background: var(--dot-off); }
+.dots i.on { background: var(--accent); }
+.row.picked .dots i:not(.on) { background: var(--surface); box-shadow: inset 0 0 0 1px var(--dot-edge); }
+.legend { display: flex; justify-content: space-between; max-width: 220px; font-size: 11px; color: var(--ink-3); }
+
+/* 버튼 */
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: 600 15px var(--body); border-radius: 10px; min-height: 44px; padding: 0 16px; cursor: pointer; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+button.ghost { background: transparent; }
+button.full { flex: 1 1 100%; }
+button:disabled { opacity: .5; cursor: default; }
+
+/* 고정 번호 */
+.keys { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 40px; }
+.keychip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 3px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+.keychip button { min-height: 28px; height: 28px; width: 28px; padding: 0; border-radius: 50%; border: 0; background: transparent; color: var(--ink-3); font-size: 16px; line-height: 1; }
+details.picker { border-top: 1px dashed var(--line); padding-top: 10px; }
+details.picker summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--accent); list-style: none; min-height: 32px; display: flex; align-items: center; }
+details.picker summary::-webkit-details-marker { display: none; }
+.grid45 { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.grid45 button { min-height: 38px; padding: 0; font: 600 14px var(--mono); font-variant-numeric: tabular-nums; border-radius: 50%; aspect-ratio: 1; max-width: 100%; }
+.grid45 button.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+/* 게임 구성 */
+.compose { display: flex; flex-direction: column; gap: 10px; }
+.compose-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button { min-height: 36px; padding: 0 12px; font-size: 13px; border-radius: 999px; }
+.presets button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.crows { display: flex; flex-direction: column; gap: 6px; }
+.crow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 8px 8px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.crow.active { border-color: var(--accent); background: var(--accent-soft); }
+.crow .t { font-weight: 600; font-size: 14px; }
+.crow .d { font-size: 12px; color: var(--ink-3); overflow-wrap: anywhere; }
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper button { width: 40px; min-height: 40px; padding: 0; font: 600 18px/1 var(--mono); }
+.stepper output { min-width: 26px; text-align: center; font: 600 17px var(--mono); font-variant-numeric: tabular-nums; }
+
+.opts { display: flex; flex-direction: column; gap: 8px; }
+.check { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+.check input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
+
+/* 결과 */
+.games { display: flex; flex-direction: column; gap: 8px; }
+.game { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: center; padding: 10px; border-radius: 12px; background: var(--surface-2); }
+.game .tag { font: 600 15px var(--mono); color: var(--ink-2); text-align: center; }
+.game .kind { grid-column: 2; font-size: 12px; color: var(--ink-3); margin-top: -4px; }
+.note { font-size: 13px; color: var(--warn); background: var(--warn-soft); padding: 8px 10px; border-radius: 10px; }
+.toast { font-size: 13px; color: var(--ok); min-height: 20px; }
+
+/* 최근 회차 */
+.draws { display: flex; flex-direction: column; }
+.draw { display: flex; flex-direction: column; gap: 6px; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.draw:last-child { border-bottom: 0; }
+.draw .meta { display: flex; gap: 10px; align-items: baseline; font-size: 13px; color: var(--ink-3); }
+.draw .meta b { color: var(--ink); font-size: 15px; font-family: var(--mono); font-weight: 600; }
+.draw .meta .hit { margin-left: auto; font-weight: 600; color: var(--accent); }
+
+/* 직접 입력 */
+details.manual summary { cursor: pointer; font-family: var(--display); font-size: 19px; list-style: none; display: flex; justify-content: space-between; align-items: center; min-height: 32px; }
+details.manual summary::-webkit-details-marker { display: none; }
+details.manual summary::after { content: "+"; font-family: var(--mono); color: var(--ink-3); font-size: 20px; }
+details.manual[open] summary::after { content: "−"; }
+.mform { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.mnums { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.mnums input { text-align: center; padding: 8px 2px; font-family: var(--mono); }
+.mnums input.bonus { border-style: dashed; }
+.err { color: var(--warn); font-size: 13px; min-height: 18px; }
+.extras { display: flex; flex-direction: column; gap: 6px; }
+.extra { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+.extra button { min-height: 34px; padding: 0 12px; font-size: 13px; }
+
+footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: column; gap: 4px; padding-inline: 4px; }
+.loading { color: var(--ink-3); padding: 40px 0; text-align: center; }
+
+@media (max-width: 380px) {
+  .ball { width: 30px; height: 30px; font-size: 13px; }
+  .row { grid-template-columns: 22px 28px 36px minmax(0, 1fr) 26px; gap: 6px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .games .game { animation: pop .28s ease-out both; }
+  .games .game:nth-child(2) { animation-delay: .04s; } .games .game:nth-child(3) { animation-delay: .08s; }
+  .games .game:nth-child(4) { animation-delay: .12s; } .games .game:nth-child(5) { animation-delay: .16s; }
+  @keyframes pop { from { transform: translateY(4px); opacity: .4; } to { transform: none; opacity: 1; } }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>로또 번호 공방</h1>
+    <p class="muted">1회부터 쌓인 누적 빈도와 최근 흐름을 겹쳐 보고, 고른 번호로 이번 주 5게임을 만듭니다.</p>
+    <div class="status" id="status"><span class="chip plain">데이터 불러오는 중</span></div>
+  </header>
+
+  <div id="app" class="loading">당첨번호를 불러오는 중입니다…</div>
+
+  <footer>
+    <span>매주 일요일 0시에 전 회차 당첨번호가 갱신됩니다. (토요일 20:35 추첨)</span>
+    <span>과거 빈도는 다음 회차 확률을 바꾸지 않습니다. 1~1243회 검증에서 모든 구간이 13.33%로 같았습니다. 재미로 즐겨 주세요.</span>
+  </footer>
+</div>
+
+<template id="tpl">
+  <section class="card">
+    <div class="sec-head">
+      <h2>누적 상위 번호의 최근 흐름</h2>
+      <p class="muted small">누적 출현 상위 번호가 최근 회차에 몇 번 나왔는지 봅니다. 줄을 누르면 고정 번호에 넣거나 뺍니다.</p>
+    </div>
+    <div class="controls">
+      <div class="field">
+        <span class="field-label"><label for="topN">누적 상위</label><button type="button" class="help" data-help="top" aria-label="누적 상위 설명" aria-expanded="false" aria-controls="pop-top">?</button></span>
+        <select id="topN"><option value="6">6개</option><option value="10">10개</option><option value="15">15개</option><option value="20">20개</option></select>
+      </div>
+      <div class="field">
+        <span class="field-label"><label for="recentM">최근 구간</label><button type="button" class="help" data-help="recent" aria-label="최근 구간 설명" aria-expanded="false" aria-controls="pop-recent">?</button></span>
+        <select id="recentM"><option value="5">5회</option><option value="10">10회</option><option value="15">15회</option><option value="20">20회</option></select>
+      </div>
+      <div class="pop" id="pop-top" role="dialog" aria-label="누적 상위 설명" hidden></div>
+      <div class="pop" id="pop-recent" role="dialog" aria-label="최근 구간 설명" hidden></div>
+    </div>
+    <div class="table-scroll"><div class="rows" id="rows"></div></div>
+  </section>
+
+  <section class="card">
+    <div class="sec-head">
+      <h2>번호 만들기</h2>
+      <p class="muted small">고정 번호는 최근 구간에서 가장 자주 나온 누적 상위 번호 3개로 먼저 채워집니다. 최대 5개까지 고를 수 있습니다.</p>
+    </div>
+    <div class="keys" id="keys"></div>
+    <div class="btns">
+      <button class="ghost" id="resetKeys" type="button">추천 번호로 되돌리기</button>
+      <button class="ghost" id="clearKeys" type="button">모두 빼기</button>
+    </div>
+    <details class="picker" id="picker">
+      <summary>1~45에서 직접 고르기</summary>
+      <div class="grid45" id="grid45"></div>
+    </details>
+    <div class="compose" id="compose">
+      <div class="compose-head"><span>게임 구성 · 고정 번호를 몇 개씩 넣을지</span><span class="chip plain" id="composeTotal"></span></div>
+      <div class="presets" id="presets"></div>
+      <div class="crows" id="crows"></div>
+    </div>
+    <div class="opts">
+      <label class="check"><input type="checkbox" id="optConsec" checked>추가 번호로 연속 번호 만들지 않기 (예: 12-13)</label>
+      <label class="check"><input type="checkbox" id="opt7" checked>7번 빼기 (가장 많이 고르는 행운 번호)</label>
+      <label class="check"><input type="checkbox" id="optHigh" checked>32 이상 번호 2개 이상 넣기 (생일 번호 쏠림 피하기)</label>
+      <label class="check"><input type="checkbox" id="optSpread" checked>게임끼리 추가 번호 겹치지 않게</label>
+    </div>
+    <button class="primary full" id="gen" type="button">5게임 만들기</button>
+    <div id="genNote"></div>
+    <div class="games" id="games"></div>
+    <div class="btns">
+      <button id="copy" type="button" disabled>번호 복사</button>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+  </section>
+
+  <section class="card">
+    <div class="sec-head">
+      <h2 id="recentTitle">최근 당첨번호</h2>
+      <p class="muted small">테두리가 있는 공은 누적 상위 번호입니다.</p>
+    </div>
+    <div class="draws" id="draws"></div>
+  </section>
+
+  <section class="card">
+    <details class="manual" id="manual">
+      <summary>새 회차 직접 넣기</summary>
+      <p class="muted small">일요일 갱신 전에 먼저 반영하고 싶을 때 씁니다. 이 기기에만 저장되고, 공식 데이터가 들어오면 자동으로 공식 값이 우선합니다.</p>
+      <form class="mform" id="mform" novalidate>
+        <label class="field">회차
+          <input type="number" id="mNo" inputmode="numeric">
+        </label>
+        <div class="field">당첨번호 6개 + 보너스
+          <div class="mnums" id="mnums"></div>
+        </div>
+        <div class="err" id="mErr" role="alert"></div>
+        <button class="primary" type="submit">이 회차 추가</button>
+      </form>
+      <div class="extras" id="extras"></div>
+    </details>
+  </section>
+</template>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const STORE = "lotto-workshop-v1";
+  const store = {
+    load() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; } },
+    save(v) { try { localStorage.setItem(STORE, JSON.stringify(v)); } catch {} },
+  };
+  const saved = store.load();
+  const state = {
+    official: [], extras: Array.isArray(saved.extras) ? saved.extras : [], draws: [],
+    topN: saved.topN || 10, recentM: saved.recentM || 10,
+    keys: Array.isArray(saved.keys) ? saved.keys : null, counts: Array.isArray(saved.counts) ? saved.counts : null,
+    opts: Object.assign({ consec: true, no7: true, high: true, spread: true }, saved.opts || {}),
+    games: [], updated: "",
+  };
+  const persist = () => store.save({ extras: state.extras, topN: state.topN, recentM: state.recentM, keys: state.keys, counts: state.counts, opts: state.opts });
+
+  const ballClass = (n) => n <= 10 ? "" : n <= 20 ? "r2" : n <= 30 ? "r3" : n <= 40 ? "r4" : "r5";
+  const ball = (n, extra = "") => `<span class="ball ${ballClass(n)} ${extra}">${n}</span>`;
+  const KST = 9 * 3600e3;
+  const kstDate = (s) => new Date(Date.parse(s + "T00:00:00+09:00"));
+  const fmt = (d) => { const k = new Date(d.getTime() + KST); return `${k.getUTCFullYear()}.${String(k.getUTCMonth() + 1).padStart(2, "0")}.${String(k.getUTCDate()).padStart(2, "0")}`; };
+
+  // ---------- 데이터 ----------
+  function mergeDraws() {
+    const last = state.official.length ? state.official[state.official.length - 1][0] : 0;
+    state.extras = state.extras.filter((e) => e[0] > last);
+    const extra = [...state.extras].sort((a, b) => a[0] - b[0]);
+    state.draws = [...state.official, ...extra];
+  }
+
+  function stats() {
+    const D = state.draws, M = Math.min(state.recentM, D.length);
+    const total = new Array(46).fill(0), recent = new Array(46).fill(0);
+    D.forEach((d) => d.slice(2, 8).forEach((n) => total[n]++));
+    const recentDraws = D.slice(-M);
+    recentDraws.forEach((d) => d.slice(2, 8).forEach((n) => recent[n]++));
+    const order = [...Array(45)].map((_, i) => i + 1).sort((a, b) => total[b] - total[a] || a - b);
+    const rank = {}; order.forEach((n, i) => (rank[n] = i + 1));
+    const top = order.slice(0, state.topN);
+    const suggested = [...top].sort((a, b) => recent[b] - recent[a] || rank[a] - rank[b]).filter((n) => recent[n] > 0).slice(0, 3).sort((a, b) => a - b);
+    return { total, recent, rank, top, topSet: new Set(top), recentDraws, suggested };
+  }
+
+  // ---------- 화면 ----------
+  function renderStatus() {
+    const D = state.draws, last = D[D.length - 1];
+    const lastDate = kstDate(last[1]);
+    const nextDraw = new Date(lastDate.getTime() + 7 * 864e5);
+    const expectedUpdate = new Date(lastDate.getTime() + 8 * 864e5); // 다음 추첨 다음날 0시
+    const stale = Date.now() >= expectedUpdate.getTime();
+    const manual = state.extras.length > 0;
+    $("status").innerHTML =
+      `<span class="chip ${stale ? "warn" : "ok"}">${stale ? `${last[0] + 1}회 결과 반영 대기` : "최신 회차 반영됨"}</span>` +
+      `<span class="chip plain">데이터 <b class="num">${last[0]}</b>회 · ${fmt(lastDate)}${manual ? " (직접 입력 포함)" : ""}</span>` +
+      `<span class="chip plain">이번 추첨 <b class="num">${last[0] + 1}</b>회 · ${fmt(nextDraw)} (토)</span>`;
+  }
+
+  function renderRows(s) {
+    const M = s.recentDraws.length, keys = new Set(state.keys);
+    let h = `<div class="row head"><span class="rank">순위</span><span>번호</span><span class="total">누적</span><span>최근 ${M}회 출현 (왼쪽이 과거)</span><span class="rc">횟수</span></div>`;
+    s.top.forEach((n) => {
+      const cells = s.recentDraws.map((d) => `<i class="${d.slice(2, 8).includes(n) ? "on" : ""}"></i>`).join("");
+      h += `<div class="row ${keys.has(n) ? "picked" : ""}" data-n="${n}" tabindex="0" role="button" aria-pressed="${keys.has(n)}" aria-label="${n}번, 누적 ${s.total[n]}회, 최근 ${M}회 중 ${s.recent[n]}회">
+        <span class="rank num">${s.rank[n]}</span>${ball(n, "sm")}<span class="total num">${s.total[n]}</span>
+        <span class="dots" style="grid-template-columns:repeat(${M},minmax(0,1fr))">${cells}</span><span class="rc num">${s.recent[n]}</span></div>`;
+    });
+    $("rows").innerHTML = h;
+  }
+
+  function renderKeys(s) {
+    const keys = [...state.keys].sort((a, b) => a - b);
+    $("keys").innerHTML = keys.length
+      ? keys.map((n) => `<span class="keychip">${ball(n, "sm")}<span>누적 ${s.rank[n]}위 · 최근 ${s.recent[n]}회</span><button type="button" data-rm="${n}" aria-label="${n}번 빼기">×</button></span>`).join("")
+      : `<span class="muted small">고정 번호 없음 · 6개 모두 무작위로 뽑습니다</span>`;
+    $("grid45").innerHTML = [...Array(45)].map((_, i) => `<button type="button" data-g="${i + 1}" class="${state.keys.includes(i + 1) ? "on" : ""}" aria-pressed="${state.keys.includes(i + 1)}">${i + 1}</button>`).join("");
+    renderCompose();
+  }
+
+  // ---------- 게임 구성 (고정 번호 k개 포함 게임 수) ----------
+  const GAMES = 5;
+  const sortedKeys = () => [...state.keys].sort((a, b) => a - b);
+  function combos(arr, k) {
+    if (k === 0) return [[]];
+    const out = [];
+    arr.forEach((x, i) => combos(arr.slice(i + 1), k - 1).forEach((c) => out.push([x, ...c])));
+    return out;
+  }
+  function defaultCounts(K) {
+    const c = new Array(K + 1).fill(0);
+    if (!K) { c[0] = GAMES; return c; }
+    c[1] = Math.min(K, GAMES);
+    c[K] += GAMES - c[1];
+    return c;
+  }
+  function presetList(K) {
+    const list = [{ id: "base", label: K > 1 ? "하나씩 + 전부" : "기본", counts: defaultCounts(K) }];
+    for (let k = 1; k <= K; k++) {
+      const c = new Array(K + 1).fill(0); c[k] = GAMES;
+      list.push({ id: `all${k}`, label: k === K ? "5게임 전부 포함" : `5게임 ${k}개씩`, counts: c });
+    }
+    return K > 1 ? list : list.slice(0, 1);
+  }
+  function ensureCounts() {
+    const K = state.keys.length, c = state.counts;
+    if (!Array.isArray(c) || c.length !== K + 1 || c.some((n) => !Number.isInteger(n) || n < 0) || c.reduce((a, b) => a + b, 0) > GAMES) state.counts = defaultCounts(K);
+  }
+  const kindLabel = (fixed, K) => !fixed.length ? "무작위" : fixed.length === K && K > 1 ? `${fixed.join("·")} 전부 포함` : `${fixed.join("·")}만 포함`;
+
+  function renderCompose() {
+    ensureCounts();
+    const keys = sortedKeys(), K = keys.length, c = state.counts;
+    const total = c.reduce((a, b) => a + b, 0);
+    $("composeTotal").className = `chip ${total === GAMES ? "ok" : "warn"}`;
+    $("composeTotal").textContent = `${total} / ${GAMES}게임 · ${(total * 1000).toLocaleString()}원`;
+    $("gen").disabled = total !== GAMES;
+    if (!K) {
+      $("presets").innerHTML = "";
+      $("crows").innerHTML = `<p class="muted small">고정 번호가 없어서 5게임 모두 무작위로 뽑습니다.</p>`;
+      return;
+    }
+    $("presets").innerHTML = presetList(K).map((p) =>
+      `<button type="button" data-preset="${p.id}" aria-pressed="${p.counts.join() === c.join()}">${p.label}</button>`).join("");
+    const rows = [];
+    for (let k = 1; k <= K; k++) rows.push(k);
+    rows.push(0);
+    $("crows").innerHTML = rows.map((k) => {
+      const cs = combos(keys, k), n = c[k];
+      const title = k === 0 ? "고정 번호 없이" : k === K && K > 1 ? `${K}개 전부 포함` : `${k}개 포함`;
+      const detail = k === 0 ? "6개 모두 무작위" : n
+        ? Array.from({ length: n }, (_, i) => cs[i % cs.length].join("·")).join(" / ")
+        : cs.length > 1 ? `${cs.length}가지 조합 중 돌아가며` : `${cs[0].join("·")} 고정`;
+      return `<div class="crow ${n ? "active" : ""}">
+        <div><div class="t">${title}</div><div class="d">${detail}</div></div>
+        <div class="stepper"><button type="button" data-step="${k}" data-d="-1" aria-label="${title} 게임 줄이기" ${n ? "" : "disabled"}>−</button>
+        <output aria-live="polite">${n}</output>
+        <button type="button" data-step="${k}" data-d="1" aria-label="${title} 게임 늘리기" ${total >= GAMES ? "disabled" : ""}>+</button></div></div>`;
+    }).join("");
+  }
+
+  function renderDraws(s) {
+    $("recentTitle").textContent = `최근 ${s.recentDraws.length}회 당첨번호`;
+    $("draws").innerHTML = [...s.recentDraws].reverse().map((d) => {
+      const nums = d.slice(2, 8), hit = nums.filter((n) => s.topSet.has(n)).length;
+      const manual = state.extras.some((e) => e[0] === d[0]);
+      return `<div class="draw"><div class="meta"><b>${d[0]}회</b><span>${fmt(kstDate(d[1]))}${manual ? " · 직접 입력" : ""}</span><span class="hit">상위 ${hit}개</span></div>
+        <div class="balls">${nums.map((n) => ball(n, "sm " + (s.topSet.has(n) ? "key" : ""))).join("")}<span class="plus">+</span>${ball(d[8], "sm dim")}</div></div>`;
+    }).join("");
+  }
+
+  function renderGames() {
+    const keys = new Set(state.keys);
+    $("games").innerHTML = state.games.map((g, i) =>
+      `<div class="game"><span class="tag">${"ABCDE"[i]}</span><div class="balls">${g.nums.map((n) => ball(n, keys.has(n) ? "key" : "")).join("")}</div><span class="kind">${g.kind}</span></div>`).join("");
+    $("copy").disabled = !state.games.length;
+  }
+
+  function renderExtras() {
+    const last = state.draws[state.draws.length - 1];
+    $("mNo").value = last[0] + 1;
+    $("extras").innerHTML = state.extras.map((e) =>
+      `<div class="extra"><span><b class="num">${e[0]}회</b> <span class="num">${e.slice(2, 8).join(" ")} + ${e[8]}</span></span><button type="button" data-del="${e[0]}">삭제</button></div>`).join("");
+  }
+
+  function renderAll() {
+    mergeDraws();
+    const s = stats();
+    if (!state.keys) state.keys = s.suggested;
+    state.suggested = s.suggested;
+    renderStatus(); renderRows(s); renderKeys(s); renderDraws(s); renderExtras();
+    persist();
+  }
+
+  // ---------- 번호 생성 ----------
+  const rnd = (n) => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };
+  const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = rnd(i + 1); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+
+  function plan() {
+    ensureCounts();
+    const keys = sortedKeys(), K = keys.length, out = [];
+    for (let k = 1; k <= K; k++) {
+      const cs = combos(keys, k);
+      for (let i = 0; i < state.counts[k]; i++) out.push({ fixed: cs[i % cs.length], kind: kindLabel(cs[i % cs.length], K) });
+    }
+    for (let i = 0; i < state.counts[0]; i++) out.push({ fixed: [], kind: "무작위" });
+    return out;
+  }
+
+  function fits(nums, fixed, o) {
+    const fx = new Set(fixed);
+    if (o.consec) for (let i = 1; i < 6; i++) if (nums[i] - nums[i - 1] === 1 && !(fx.has(nums[i]) && fx.has(nums[i - 1]))) return false;
+    if (o.high && nums.filter((n) => n >= 32).length < 2) return false;
+    return true;
+  }
+
+  function generate() {
+    const keys = new Set(state.keys), games = [], used = new Set(), seen = new Set();
+    const notes = new Set();
+    for (const g of plan()) {
+      const fixed = g.fixed, need = 6 - fixed.length;
+      const base = [...Array(45)].map((_, i) => i + 1).filter((n) => !keys.has(n) && !(state.opts.no7 && n === 7));
+      const tiers = [
+        { o: state.opts, spread: state.opts.spread },
+        { o: state.opts, spread: false, note: "추가 번호가 부족해서 일부 게임은 번호가 겹칩니다." },
+        { o: { consec: false, high: state.opts.high }, spread: false, note: "조건을 모두 맞출 수 없어 연속 번호 조건을 풀었습니다." },
+        { o: { consec: false, high: false }, spread: false, note: "조건을 모두 맞출 수 없어 일부 조건을 풀었습니다." },
+      ];
+      let got = null;
+      for (const t of tiers) {
+        const pool = t.spread ? base.filter((n) => !used.has(n)) : base;
+        if (pool.length < need) continue;
+        for (let tries = 0; tries < 4000 && !got; tries++) {
+          const pick = shuffle([...pool]).slice(0, need);
+          const nums = [...fixed, ...pick].sort((a, b) => a - b);
+          if (seen.has(nums.join()) || !fits(nums, fixed, t.o)) continue;
+          got = { nums, pick };
+        }
+        if (got) { if (t.note) notes.add(t.note); break; }
+      }
+      if (!got) { notes.add("조건에 맞는 조합을 찾지 못했습니다. 고정 번호 수를 줄여 보세요."); break; }
+      got.pick.forEach((n) => used.add(n)); seen.add(got.nums.join());
+      games.push({ nums: got.nums, kind: g.kind });
+    }
+    state.games = games;
+    $("genNote").innerHTML = [...notes].map((n) => `<p class="note">${n}</p>`).join("");
+    $("toast").textContent = "";
+    renderGames();
+  }
+
+  // ---------- 이벤트 ----------
+  function toggleKey(n) {
+    const k = new Set(state.keys);
+    if (k.has(n)) k.delete(n);
+    else if (k.size >= 5) { $("toast").textContent = "고정 번호는 5개까지 고를 수 있습니다."; return; }
+    else k.add(n);
+    state.keys = [...k].sort((a, b) => a - b);
+    const s = stats(); renderRows(s); renderKeys(s); persist();
+  }
+
+  function bind() {
+    $("topN").value = state.topN; $("recentM").value = state.recentM;
+    $("optConsec").checked = state.opts.consec; $("opt7").checked = state.opts.no7;
+    $("optHigh").checked = state.opts.high; $("optSpread").checked = state.opts.spread;
+
+    $("topN").addEventListener("change", (e) => { state.topN = +e.target.value; renderAll(); });
+    $("recentM").addEventListener("change", (e) => { state.recentM = +e.target.value; renderAll(); });
+    $("compose").addEventListener("click", (e) => {
+      const p = e.target.closest("[data-preset]"), st = e.target.closest("[data-step]");
+      if (p) state.counts = presetList(state.keys.length).find((x) => x.id === p.dataset.preset).counts.slice();
+      else if (st) {
+        const k = +st.dataset.step, d = +st.dataset.d, total = state.counts.reduce((a, b) => a + b, 0);
+        if ((d < 0 && state.counts[k] > 0) || (d > 0 && total < GAMES)) state.counts[k] += d;
+      } else return;
+      renderCompose(); persist();
+    });
+    [["optConsec", "consec"], ["opt7", "no7"], ["optHigh", "high"], ["optSpread", "spread"]].forEach(([id, k]) =>
+      $(id).addEventListener("change", (e) => { state.opts[k] = e.target.checked; persist(); }));
+
+    $("rows").addEventListener("click", (e) => { const r = e.target.closest(".row[data-n]"); if (r) toggleKey(+r.dataset.n); });
+    $("rows").addEventListener("keydown", (e) => { const r = e.target.closest(".row[data-n]"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleKey(+r.dataset.n); } });
+    $("keys").addEventListener("click", (e) => { const b = e.target.closest("[data-rm]"); if (b) toggleKey(+b.dataset.rm); });
+    $("grid45").addEventListener("click", (e) => { const b = e.target.closest("[data-g]"); if (b) toggleKey(+b.dataset.g); });
+    $("resetKeys").addEventListener("click", () => { state.keys = [...state.suggested]; const s = stats(); renderRows(s); renderKeys(s); persist(); });
+    $("clearKeys").addEventListener("click", () => { state.keys = []; const s = stats(); renderRows(s); renderKeys(s); persist(); });
+    $("gen").addEventListener("click", generate);
+
+    $("copy").addEventListener("click", async () => {
+      const text = state.games.map((g, i) => `${"ABCDE"[i]}  ${g.nums.map((n) => String(n).padStart(2, " ")).join("  ")}`).join("\n");
+      try { await navigator.clipboard.writeText(text); $("toast").textContent = "5게임 번호를 복사했습니다."; }
+      catch {
+        const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        let ok = false; try { ok = document.execCommand("copy"); } catch {}
+        ta.remove();
+        $("toast").textContent = ok ? "5게임 번호를 복사했습니다." : "복사가 막혀 있습니다. 번호를 길게 눌러 직접 복사해 주세요.";
+      }
+    });
+
+    $("mnums").innerHTML = [...Array(7)].map((_, i) =>
+      `<input type="number" inputmode="numeric" min="1" max="45" id="m${i}" class="${i === 6 ? "bonus" : ""}" aria-label="${i === 6 ? "보너스 번호" : `${i + 1}번째 번호`}" placeholder="${i === 6 ? "보너스" : ""}">`).join("");
+    $("mform").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const last = state.draws[state.draws.length - 1];
+      const no = +$("mNo").value, vals = [...Array(7)].map((_, i) => +$(`m${i}`).value);
+      const main = vals.slice(0, 6), bonus = vals[6];
+      let err = "";
+      if (no !== last[0] + 1) err = `${last[0] + 1}회부터 순서대로 넣을 수 있습니다.`;
+      else if (vals.some((v) => !Number.isInteger(v) || v < 1 || v > 45)) err = "번호는 1부터 45까지 7개를 모두 넣어 주세요.";
+      else if (new Set(vals).size !== 7) err = "당첨번호와 보너스 번호에 같은 숫자가 있습니다.";
+      $("mErr").textContent = err;
+      if (err) return;
+      const date = new Date(kstDate(last[1]).getTime() + 7 * 864e5 + KST).toISOString().slice(0, 10);
+      state.extras.push([no, date, ...main.sort((a, b) => a - b), bonus]);
+      [...Array(7)].forEach((_, i) => ($(`m${i}`).value = ""));
+      state.keys = null;
+      renderAll();
+    });
+    $("extras").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-del]"); if (!b) return;
+      const no = +b.dataset.del;
+      state.extras = state.extras.filter((x) => x[0] < no);
+      state.keys = null;
+      renderAll();
+    });
+  }
+
+  // ---------- 도움말 팝업 ----------
+  let openHelp = null;
+  function helpHtml(kind) {
+    const s = stats(), D = state.draws, last = D[D.length - 1][0], M = s.recentDraws.length;
+    const close = `<button type="button" class="pop-close" data-close aria-label="닫기">×</button>`;
+    if (kind === "top") return `
+      <div class="pop-head"><span class="pop-title">누적 상위</span>${close}</div>
+      <p><b>1회부터 최신 회차까지 전체 기간</b>에서 가장 많이 나온 번호를 순서대로 고릅니다. 아래 표에는 이 번호들만 나옵니다.</p>
+      <p class="pop-now">지금: 1~${last}회에서 상위 ${state.topN}개<br><span class="num">${s.top.join(", ")}</span></p>
+      <p class="muted small">개수를 늘리면 후보가 많아져서, 최근에 자주 나온 번호가 새로 들어올 수 있습니다.</p>`;
+    return `
+      <div class="pop-head"><span class="pop-title">최근 구간</span>${close}</div>
+      <p>누적 상위 번호가 <b>최근 몇 회차 동안</b> 몇 번 나왔는지 셉니다. 그중 가장 많이 나온 3개가 고정 번호로 추천됩니다.</p>
+      <p class="pop-now">지금: ${s.recentDraws[0][0]}~${last}회 (${M}회)<br>추천 고정 번호 <span class="num">${s.suggested.join(", ") || "없음"}</span></p>
+      <p class="muted small">줄이면 아주 최근 흐름만, 늘리면 조금 더 긴 흐름을 봅니다. 어떤 값을 골라도 실제 당첨 확률은 같습니다.</p>`;
+  }
+  function showHelp(kind) {
+    ["top", "recent"].forEach((k) => {
+      const pop = $(`pop-${k}`), btn = document.querySelector(`.help[data-help="${k}"]`), on = k === kind;
+      btn.setAttribute("aria-expanded", on);
+      if (!on) { pop.hidden = true; return; }
+      pop.innerHTML = helpHtml(k);
+      const box = $("topN").closest(".controls").getBoundingClientRect(), b = btn.getBoundingClientRect();
+      pop.style.top = `${b.bottom - box.top + 10}px`;
+      pop.style.setProperty("--arrow-x", `${b.left + b.width / 2 - box.left}px`);
+      pop.hidden = false;
+    });
+    openHelp = kind;
+  }
+  function bindHelp() {
+    document.querySelectorAll(".help").forEach((btn) =>
+      btn.addEventListener("click", (e) => { e.stopPropagation(); showHelp(openHelp === btn.dataset.help ? null : btn.dataset.help); }));
+    document.addEventListener("click", (e) => {
+      if (!openHelp) return;
+      if (e.target.closest("[data-close]")) { const k = openHelp; showHelp(null); document.querySelector(`.help[data-help="${k}"]`).focus(); return; }
+      if (!e.target.closest(".pop")) showHelp(null);
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && openHelp) { const k = openHelp; showHelp(null); document.querySelector(`.help[data-help="${k}"]`).focus(); } });
+    ["topN", "recentM"].forEach((id) => $(id).addEventListener("change", () => { if (openHelp) showHelp(openHelp); }));
+    window.addEventListener("resize", () => { if (openHelp) showHelp(openHelp); });
+  }
+
+  async function start() {
+    try {
+      const res = await fetch("draws.json", { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      state.official = data.draws; state.updated = data.updated;
+    } catch (e) {
+      $("app").textContent = "당첨번호 파일을 불러오지 못했습니다. 잠시 뒤 새로고침해 주세요.";
+      $("status").innerHTML = `<span class="chip warn">불러오기 실패</span>`;
+      return;
+    }
+    const app = $("app");
+    app.className = ""; app.style.display = "contents"; app.textContent = "";
+    app.appendChild($("tpl").content.cloneNode(true));
+    bind();
+    bindHelp();
+    renderAll();
+    generate();
+  }
+  start();
+})();
+</script>
