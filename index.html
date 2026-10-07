@@ -1,4 +1,8 @@
+<!doctype html>
+<html lang="ko">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>로또 번호 공방</title>
 <meta name="theme-color" content="#1B2536">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,7 +51,9 @@
   --dot-off: #283142; --dot-edge: #5A6799;
 }
 * { box-sizing: border-box; }
+html { background: var(--bg); }
 body {
+  margin: 0; min-height: 100vh;
   background: var(--bg); color: var(--ink);
   font: 15px/1.6 var(--body);
   padding-inline: 16px; padding-block: 20px 48px;
@@ -111,6 +117,7 @@ select:focus-visible, input:focus-visible, button:focus-visible, .row:focus-visi
 .rows { display: flex; flex-direction: column; min-width: 300px; }
 .row { display: grid; grid-template-columns: 26px 30px 40px minmax(0, 1fr) 28px; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 8px; -webkit-tap-highlight-color: transparent; }
 .row:last-child { border-bottom: 0; }
+.rows .row.head > span { white-space: nowrap; }
 .rows .row.head .rc { white-space: nowrap; font-size: 12px; font-weight: 600; }
 .row.head { cursor: default; font-size: 12px; color: var(--ink-3); font-weight: 600; letter-spacing: .02em; padding-block: 2px 6px; }
 .row.picked { background: var(--accent-soft); }
@@ -194,9 +201,14 @@ details.manual[open] summary::after { content: "−"; }
 footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: column; gap: 4px; padding-inline: 4px; }
 .loading { color: var(--ink-3); padding: 40px 0; text-align: center; }
 
+@media (max-width: 480px) {
+  body { padding-inline: max(12px, env(safe-area-inset-left, 0px)); padding-block: max(16px, env(safe-area-inset-top, 0px)) 40px; }
+  .wrap { gap: 14px; }
+  section.card { padding: 16px 12px; }
+}
 @media (max-width: 380px) {
   .ball { width: 30px; height: 30px; font-size: 13px; }
-  .row { grid-template-columns: 22px 28px 36px minmax(0, 1fr) 26px; gap: 6px; }
+  .row { grid-template-columns: 26px 28px 36px minmax(0, 1fr) 26px; gap: 6px; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .games .game { animation: pop .28s ease-out both; }
@@ -205,7 +217,8 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
   @keyframes pop { from { transform: translateY(4px); opacity: .4; } to { transform: none; opacity: 1; } }
 }
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <header>
     <h1>로또 번호 공방</h1>
@@ -699,3 +712,5 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
   start();
 })();
 </script>
+</body>
+</html>
