@@ -245,8 +245,11 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
   <section class="card">
     <div class="sec-head">
       <h2>번호 만들기</h2>
-      <p class="muted small">고정 번호는 최근 구간에서 가장 자주 나온 누적 상위 번호 3개로 먼저 채워집니다. 최대 5개까지 고를 수 있습니다.</p>
+      <p class="muted small" id="keysDesc"></p>
     </div>
+    <label class="field">추천 고정 번호 개수
+      <select id="pickN"><option value="1">1개</option><option value="2">2개</option><option value="3">3개</option><option value="4">4개</option><option value="5">5개</option><option value="6">6개</option></select>
+    </label>
     <div class="keys" id="keys"></div>
     <div class="btns">
       <button class="ghost" id="resetKeys" type="button">추천 번호로 되돌리기</button>
@@ -312,14 +315,15 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
     save(v) { try { localStorage.setItem(STORE, JSON.stringify(v)); } catch {} },
   };
   const saved = store.load();
+  const MAXK = 6;              // 고정 번호 최대 개수 (한 게임 6개)
   const state = {
     official: [], extras: Array.isArray(saved.extras) ? saved.extras : [], draws: [],
-    topN: saved.topN || 10, recentM: saved.recentM || 10,
+    topN: saved.topN || 10, recentM: saved.recentM || 10, pickN: Math.min(Math.max(+saved.pickN || 3, 1), MAXK),
     keys: Array.isArray(saved.keys) ? saved.keys : null, counts: Array.isArray(saved.counts) ? saved.counts : null,
     opts: Object.assign({ consec: true, no7: true, high: true, spread: true }, saved.opts || {}),
     games: [], updated: "",
   };
-  const persist = () => store.save({ extras: state.extras, topN: state.topN, recentM: state.recentM, keys: state.keys, counts: state.counts, opts: state.opts });
+  const persist = () => store.save({ extras: state.extras, topN: state.topN, recentM: state.recentM, keys: state.keys, counts: state.counts, pickN: state.pickN, opts: state.opts });
 
   const ballClass = (n) => n <= 10 ? "" : n <= 20 ? "r2" : n <= 30 ? "r3" : n <= 40 ? "r4" : "r5";
   const ball = (n, extra = "") => `<span class="ball ${ballClass(n)} ${extra}">${n}</span>`;
@@ -344,7 +348,7 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
     const order = [...Array(45)].map((_, i) => i + 1).sort((a, b) => total[b] - total[a] || a - b);
     const rank = {}; order.forEach((n, i) => (rank[n] = i + 1));
     const top = order.slice(0, state.topN);
-    const suggested = [...top].sort((a, b) => recent[b] - recent[a] || rank[a] - rank[b]).filter((n) => recent[n] > 0).slice(0, 3).sort((a, b) => a - b);
+    const suggested = [...top].sort((a, b) => recent[b] - recent[a] || rank[a] - rank[b]).slice(0, Math.min(state.pickN, top.length)).sort((a, b) => a - b);
     return { total, recent, rank, top, topSet: new Set(top), recentDraws, suggested };
   }
 
@@ -375,6 +379,7 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
   }
 
   function renderKeys(s) {
+    $("keysDesc").textContent = `최근 구간에서 가장 자주 나온 누적 상위 번호 ${state.pickN}개로 먼저 채워집니다. 직접 바꿀 수 있고, 최대 ${MAXK}개까지 고를 수 있습니다.`;
     const keys = [...state.keys].sort((a, b) => a - b);
     $("keys").innerHTML = keys.length
       ? keys.map((n) => `<span class="keychip">${ball(n, "sm")}<span>누적 ${s.rank[n]}위 · 최근 ${s.recent[n]}회</span><button type="button" data-rm="${n}" aria-label="${n}번 빼기">×</button></span>`).join("")
@@ -392,6 +397,19 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
     arr.forEach((x, i) => combos(arr.slice(i + 1), k - 1).forEach((c) => out.push([x, ...c])));
     return out;
   }
+  // k개짜리 조합 n개를 고르되, 고정 번호가 게임마다 고르게 쓰이도록 덜 쓰인 번호 위주로 고른다.
+  function spread(keys, k, n) {
+    const all = combos(keys, k), used = Object.fromEntries(keys.map((x) => [x, 0])), taken = new Map(), out = [];
+    for (let i = 0; i < n; i++) {
+      let best = null, bestScore = Infinity;
+      for (const c of all) {
+        const score = (taken.get(c.join()) || 0) * 1e6 + c.reduce((a, x) => a + used[x] * used[x], 0);
+        if (score < bestScore) { best = c; bestScore = score; }
+      }
+      best.forEach((x) => used[x]++); taken.set(best.join(), (taken.get(best.join()) || 0) + 1); out.push(best);
+    }
+    return out;
+  }
   function defaultCounts(K) {
     const c = new Array(K + 1).fill(0);
     if (!K) { c[0] = GAMES; return c; }
@@ -400,8 +418,9 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
     return c;
   }
   function presetList(K) {
-    const list = [{ id: "base", label: K > 1 ? "하나씩 + 전부" : "기본", counts: defaultCounts(K) }];
-    for (let k = 1; k <= K; k++) {
+    const base = defaultCounts(K);
+    const list = [{ id: "base", label: K <= 1 ? "기본" : base[K] ? "하나씩 + 전부" : "하나씩", counts: base }];
+    for (let k = 1; k <= Math.min(K, 5); k++) {            // 6개 전부 고정은 1게임만 가능해서 제외
       const c = new Array(K + 1).fill(0); c[k] = GAMES;
       list.push({ id: `all${k}`, label: k === K ? "5게임 전부 포함" : `5게임 ${k}개씩`, counts: c });
     }
@@ -409,7 +428,7 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
   }
   function ensureCounts() {
     const K = state.keys.length, c = state.counts;
-    if (!Array.isArray(c) || c.length !== K + 1 || c.some((n) => !Number.isInteger(n) || n < 0) || c.reduce((a, b) => a + b, 0) > GAMES) state.counts = defaultCounts(K);
+    if (!Array.isArray(c) || c.length !== K + 1 || c.some((n) => !Number.isInteger(n) || n < 0) || c.reduce((a, b) => a + b, 0) > GAMES || (K === 6 && c[6] > 1)) state.counts = defaultCounts(K);
   }
   const kindLabel = (fixed, K) => !fixed.length ? "무작위" : fixed.length === K && K > 1 ? `${fixed.join("·")} 전부 포함` : `${fixed.join("·")}만 포함`;
 
@@ -434,13 +453,14 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
       const cs = combos(keys, k), n = c[k];
       const title = k === 0 ? "고정 번호 없이" : k === K && K > 1 ? `${K}개 전부 포함` : `${k}개 포함`;
       const detail = k === 0 ? "6개 모두 무작위" : n
-        ? Array.from({ length: n }, (_, i) => cs[i % cs.length].join("·")).join(" / ")
-        : cs.length > 1 ? `${cs.length}가지 조합 중 돌아가며` : `${cs[0].join("·")} 고정`;
+        ? spread(keys, k, n).map((f) => f.join("·")).join(" / ")
+        : cs.length > 1 ? `${cs.length}가지 조합 중 돌아가며` : k === 6 ? "6개 그대로 · 1게임만 가능" : `${cs[0].join("·")} 고정`;
+      const full = total >= GAMES || (k === 6 && n >= 1);
       return `<div class="crow ${n ? "active" : ""}">
         <div><div class="t">${title}</div><div class="d">${detail}</div></div>
         <div class="stepper"><button type="button" data-step="${k}" data-d="-1" aria-label="${title} 게임 줄이기" ${n ? "" : "disabled"}>−</button>
         <output aria-live="polite">${n}</output>
-        <button type="button" data-step="${k}" data-d="1" aria-label="${title} 게임 늘리기" ${total >= GAMES ? "disabled" : ""}>+</button></div></div>`;
+        <button type="button" data-step="${k}" data-d="1" aria-label="${title} 게임 늘리기" ${full ? "disabled" : ""}>+</button></div></div>`;
     }).join("");
   }
 
@@ -485,8 +505,7 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
     ensureCounts();
     const keys = sortedKeys(), K = keys.length, out = [];
     for (let k = 1; k <= K; k++) {
-      const cs = combos(keys, k);
-      for (let i = 0; i < state.counts[k]; i++) out.push({ fixed: cs[i % cs.length], kind: kindLabel(cs[i % cs.length], K) });
+      spread(keys, k, state.counts[k]).forEach((f) => out.push({ fixed: f, kind: kindLabel(f, K) }));
     }
     for (let i = 0; i < state.counts[0]; i++) out.push({ fixed: [], kind: "무작위" });
     return out;
@@ -537,14 +556,20 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
   function toggleKey(n) {
     const k = new Set(state.keys);
     if (k.has(n)) k.delete(n);
-    else if (k.size >= 5) { $("toast").textContent = "고정 번호는 5개까지 고를 수 있습니다."; return; }
+    else if (k.size >= MAXK) { $("toast").textContent = `고정 번호는 ${MAXK}개까지 고를 수 있습니다.`; return; }
     else k.add(n);
     state.keys = [...k].sort((a, b) => a - b);
     const s = stats(); renderRows(s); renderKeys(s); persist();
   }
 
   function bind() {
-    $("topN").value = state.topN; $("recentM").value = state.recentM;
+    $("topN").value = state.topN; $("recentM").value = state.recentM; $("pickN").value = state.pickN;
+    $("pickN").addEventListener("change", (e) => {
+      state.pickN = +e.target.value;
+      const s = stats();
+      state.suggested = s.suggested; state.keys = [...s.suggested]; state.counts = null;
+      renderRows(s); renderKeys(s); persist();
+    });
     $("optConsec").checked = state.opts.consec; $("opt7").checked = state.opts.no7;
     $("optHigh").checked = state.opts.high; $("optSpread").checked = state.opts.spread;
 
@@ -555,7 +580,7 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
       if (p) state.counts = presetList(state.keys.length).find((x) => x.id === p.dataset.preset).counts.slice();
       else if (st) {
         const k = +st.dataset.step, d = +st.dataset.d, total = state.counts.reduce((a, b) => a + b, 0);
-        if ((d < 0 && state.counts[k] > 0) || (d > 0 && total < GAMES)) state.counts[k] += d;
+        if ((d < 0 && state.counts[k] > 0) || (d > 0 && total < GAMES && !(k === 6 && state.counts[k] >= 1))) state.counts[k] += d;
       } else return;
       renderCompose(); persist();
     });
@@ -622,7 +647,7 @@ footer { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: co
       <p class="muted small">개수를 늘리면 후보가 많아져서, 최근에 자주 나온 번호가 새로 들어올 수 있습니다.</p>`;
     return `
       <div class="pop-head"><span class="pop-title">최근 구간</span>${close}</div>
-      <p>누적 상위 번호가 <b>최근 몇 회차 동안</b> 몇 번 나왔는지 셉니다. 그중 가장 많이 나온 3개가 고정 번호로 추천됩니다.</p>
+      <p>누적 상위 번호가 <b>최근 몇 회차 동안</b> 몇 번 나왔는지 셉니다. 그중 가장 많이 나온 번호가 "추천 고정 번호 개수"만큼 고정 번호로 추천됩니다.</p>
       <p class="pop-now">지금: ${s.recentDraws[0][0]}~${last}회 (${M}회)<br>추천 고정 번호 <span class="num">${s.suggested.join(", ") || "없음"}</span></p>
       <p class="muted small">줄이면 아주 최근 흐름만, 늘리면 조금 더 긴 흐름을 봅니다. 어떤 값을 골라도 실제 당첨 확률은 같습니다.</p>`;
   }
