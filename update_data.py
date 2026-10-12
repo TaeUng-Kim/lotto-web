@@ -1,7 +1,8 @@
 """로또 6/45 당첨번호를 받아 draws.json 으로 저장한다.
 
 매주 일요일 0시(KST) 예약 작업에서 실행한 뒤 Artifact 를 다시 게시한다.
-출력 형식: {"updated": "...", "draws": [[회차, "YYYY-MM-DD", n1..n6, 보너스], ...]}
+출력 형식: {"updated": "...", "draws": [[회차, "YYYY-MM-DD", n1..n6, 보너스], ...],
+           "latest": {"no": 최신 회차, "prizes": [[당첨자 수, 1인당 당첨금] | null, ...1~5등]}}
 """
 import json
 import sys
@@ -39,8 +40,13 @@ def main():
     if [d[0] for d in draws] != list(range(1, len(draws) + 1)):
         sys.exit("회차 번호가 연속되지 않습니다")
 
+    # 최신 회차의 등수별 [당첨자 수, 1인당 당첨금]. 당첨자가 없는 등수는 null.
+    last = max(raw, key=lambda x: x["draw_no"])
+    prizes = [[d["winners"], d["prize"]] if d.get("winners") else None for d in last.get("divisions", [])[:5]]
+
     now = datetime.now(KST)
-    OUT.write_text(json.dumps({"updated": now.isoformat(timespec="minutes"), "draws": draws},
+    OUT.write_text(json.dumps({"updated": now.isoformat(timespec="minutes"), "draws": draws,
+                               "latest": {"no": last["draw_no"], "prizes": prizes}},
                               separators=(",", ":")), encoding="utf-8")
 
     latest, want = draws[-1][0], expected_latest(now)
