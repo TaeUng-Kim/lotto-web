@@ -33,11 +33,15 @@ jobs:
 
       - name: Commit if changed
         run: |
-          if git diff --quiet -I'"updated"' -- draws.json; then
+          # draws.json 은 한 줄짜리 파일이라 git diff 로는 갱신 시각만 바뀐 경우를 걸러낼 수 없다.
+          # 커밋된 파일과 새 파일의 최신 회차를 직접 비교한다.
+          before=$(git show HEAD:draws.json | python -c "import json,sys;print(json.load(sys.stdin)['draws'][-1][0])")
+          latest=$(python -c "import json;print(json.load(open('draws.json'))['draws'][-1][0])")
+          echo "커밋된 최신 회차: ${before}, 받은 최신 회차: ${latest}"
+          if [ "$latest" -le "$before" ]; then
             echo "새 회차 없음"
             exit 0
           fi
-          latest=$(python -c "import json;print(json.load(open('draws.json'))['draws'][-1][0])")
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add draws.json
